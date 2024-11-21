@@ -41,10 +41,35 @@ resources:
         BillingMode: PAY_PER_REQUEST # On-demand pricing
 
 functions:
-  getAllEventPlan:
+  addEventPlan:
     handler: src/handlers/addEvents.createEventHandler
     events:
       - httpApi:
           path: /addEvent
           method: POST
-    
+  
+  getEventPlans:
+    handler: src/handlers/getEvents.getEventsHandler
+    events:
+      - httpApi:
+          path: /getEvent
+          method: GET
+          request:
+            parameters:
+              querystrings:
+                limit: false
+                lastkey: false
+
+  updateEventPlans:
+    handler: src/handlers/updateEvent.updateEventHandler
+    events:
+      - httpApi:
+          path: /updateEvent
+          method: PUT
+
+  deleteEventPlan:
+    handler: src/handlers/deleteEvent.deleteEventHandler
+    events:
+      - http:
+          path: eventplan/{id}
+          method: DELETE
