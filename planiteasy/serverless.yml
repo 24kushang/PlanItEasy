@@ -9,12 +9,42 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: ap-south-1
+  environment:
+    DYNAMODB_TABLE: EventPlansTable
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/EventPlansTable
+
+resources:
+  Resources:
+    EventPlansTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: EventPlansTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S # `id` is the primary key and is a string
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST # On-demand pricing
 
 functions:
   getAllEventPlan:
-    handler: getEvents.handler
+    handler: src/handlers/addEvents.createEventHandler
     events:
       - httpApi:
-          path: /getAll
-          method: GET
+          path: /addEvent
+          method: POST
     
