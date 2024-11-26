@@ -1,9 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDB } from "aws-sdk";
+import { EventModel } from "../models/EventModel";
 
 const dynamoDb = new DynamoDB.DocumentClient();
 
-export const createEventHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export const addEventPlan = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     if (!event.body) {
       return {
@@ -12,43 +13,32 @@ export const createEventHandler = async (event: APIGatewayProxyEvent): Promise<A
       };
     }
 
-    // Parse the JSON body
-    let requestBody;
-    try {
-      requestBody = JSON.parse(event.body);
-    } catch (error) {
+    const requestBody: EventModel = JSON.parse(event.body);
+
+    // Basic validation
+    if (!requestBody.id || !requestBody.name || !requestBody.date || !requestBody.location || !requestBody.createdBy) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: "Invalid JSON format in request body." }),
+        body: JSON.stringify({ message: "Missing required fields in event data." }),
       };
     }
-    const { id, name, date } = requestBody;
-    if (!id || !name || !date) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: "Missing required fields: id, name, date." }),
-      };
-    }
+
     const params = {
       TableName: process.env.DYNAMODB_TABLE || "",
-      Item: {
-        id,
-        name,
-        date
-      }
+      Item: requestBody,
     };
 
     await dynamoDb.put(params).promise();
 
     return {
       statusCode: 201,
-      body: JSON.stringify({ message: "Event Plan added successfully" }),
+      body: JSON.stringify({ message: "Event added successfully." }),
     };
   } catch (error) {
-    console.error("Error adding event plan:", error);
+    console.error("Error adding event:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: "Failed to add event plan" }),
+      body: JSON.stringify({ message: "Internal Server Error." }),
     };
   }
 };

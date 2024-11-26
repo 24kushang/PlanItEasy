@@ -11,7 +11,7 @@ provider:
   region: ap-south-1
   environment:
     DYNAMODB_TABLE: EventPlansTable
-
+    COGNITO_USER_POOL_ID: ${self:custom.cognitoUserPoolId}
   iam:
     role:
       statements:
@@ -25,9 +25,17 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/EventPlansTable
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminCreateUser
+            - cognito-idp:AdminDeleteUser
+            - cognito-idp:AdminUpdateUserAttributes
+            - cognito-idp:AdminInitiateAuth
+          Resource: arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognitoUserPoolId}
 
 resources:
   Resources:
+    # Event Plans Table
     EventPlansTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -38,7 +46,55 @@ resources:
         KeySchema:
           - AttributeName: id
             KeyType: HASH
-        BillingMode: PAY_PER_REQUEST # On-demand pricing
+
+    # Users Table
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UserTable
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S # `userId` is the primary key and is a string
+          - AttributeName: email
+            AttributeType: S # Secondary Index for lookup by email
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH # Primary key for direct access
+        GlobalSecondaryIndexes:
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL # Include all attributes in the index
+        BillingMode: PAY_PER_REQUEST # Auto scales based on demand
+
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: EventPlanUserPool
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireUppercase: true
+            RequireNumbers: true
+            RequireSymbols: false
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: EventPlanUserPoolClient
+        UserPoolId:
+          Ref: CognitoUserPool
+        ExplicitAuthFlows:
+          - ADMIN_NO_SRP_AUTH
+        GenerateSecret: false
+
+custom:
+  cognitoUserPoolId:
+    Ref: CognitoUserPool
 
 functions:
   addEventPlan:
@@ -47,6 +103,8 @@ functions:
       - httpApi:
           path: /addEvent
           method: POST
+    environment:
+      COGNITO_USER_POOL_ID: ${self:custom.cognitoUserPoolId}
   
   getEventPlans:
     handler: src/handlers/getEvents.getEventsHandler
@@ -73,3 +131,15 @@ functions:
       - http:
           path: eventplan/{id}
           method: DELETE
+
+  createUser:
+    handler: src/handlers/createUser.createUserHandler
+    events:
+      - httpApi:
+          path: /createUser
+          method: POST
+    environment:
+      COGNITO_USER_POOL_ID: ${self:custom.cognitoUserPoolId}
+plugins:
+  - serverless-plugin-typescript # Compile TS code
+  - serverless-offline           # Run offline for local testing
