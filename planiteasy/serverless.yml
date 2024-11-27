@@ -23,11 +23,11 @@ custom:
       - '@types/aws-lambda'
   stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
   tableName: 
-    dev: EventPlansTable-dev
+    develop: EventPlansTable-dev
     stage: EventPlansTable-stage
     prod: EventPlansTable-prod
   userTableName:
-    dev: UserTable-dev
+    develop: UserTable-dev
     stage: UserTable-stage
     prod: UserTable-prod
 
