@@ -49,3 +49,5 @@ jobs:
         run: |
           cd planiteasy
           npm run package
+          serverless deploy --stage ${{ github.ref_name }}
+

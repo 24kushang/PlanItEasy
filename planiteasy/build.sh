@@ -16,4 +16,4 @@ cd ..
 tsc
 
 # Deploy
-serverless deploy --stage ${{ github.ref_name }}
+# serverless deploy --stage ${{ github.ref_name }}
