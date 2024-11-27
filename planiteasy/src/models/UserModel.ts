@@ -1,7 +1,7 @@
 // models/UserModel.ts
 
 export interface UserModel {
-    id: string; // Unique identifier for the user
+    userId: string; // Unique identifier for the user
     name: string; // Name of the user
     email: string; // Email address of the user
     createdAt: string; // ISO 8601 timestamp for when the user was created

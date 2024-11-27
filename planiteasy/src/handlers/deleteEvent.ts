@@ -1,7 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { DynamoDB } from "aws-sdk";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 
-const dynamoDb = new DynamoDB.DocumentClient();
+// Initialize the DynamoDB client
+const client = new DynamoDBClient({});
+const dynamoDB = DynamoDBDocumentClient.from(client);
 
 export const deleteEventHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
@@ -14,19 +17,33 @@ export const deleteEventHandler = async (event: APIGatewayProxyEvent): Promise<A
       };
     }
 
-    const params: DynamoDB.DocumentClient.DeleteItemInput = {
+    const command = new DeleteCommand({
       TableName: process.env.DYNAMODB_TABLE || "",
       Key: { id },
-    };
+      // Optional: Add a condition to ensure the item exists before deletion
+      ConditionExpression: "attribute_exists(id)",
+    });
 
-    await dynamoDb.delete(params).promise();
+    await dynamoDB.send(command);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: "Event Plan deleted successfully." }),
+      body: JSON.stringify({ 
+        message: "Event deleted successfully.",
+        deletedEventId: id
+      }),
     };
-  } catch (error) {
-    console.error("Error deleting event plan:", error);
+  } catch (error: any) {
+    console.error("Error deleting event:", error);
+    
+    // Handle conditional check failure (item doesn't exist)
+    if (error.name === 'ConditionalCheckFailedException') {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ message: "Event not found." }),
+      };
+    }
+
     return {
       statusCode: 500,
       body: JSON.stringify({ message: "Internal Server Error" }),

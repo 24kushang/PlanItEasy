@@ -7,6 +7,8 @@ export interface EventModel {
     date: string; // ISO 8601 format date (e.g., "2024-12-01T15:00:00Z")
     location: string; // Location of the event
     createdBy: string; // User ID of the creator
-    participants?: string[]; // List of user IDs who are participants
+    participants?: number; // Expected number of Participants
+    createdAt: string;
+    updatedAt: string;
   }
   

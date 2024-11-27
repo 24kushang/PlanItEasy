@@ -5,13 +5,32 @@ app: planiteasy
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: plan-it-easy
 
+custom:
+  esbuild:
+    minify: true
+    sourcemap: false
+    exclude: 
+      - aws-sdk
+    target: 'node20'
+    platform: 'node'
+    bundle: true           # Enable proper bundling
+    packager: 'npm'
+    outputFileExtension: '.js'
+    packagePath: 'package.json'
+    enableDynamicImport: true
+    nativeZip: true
+    # This is important - tells esbuild to exclude these from function bundles
+    external:
+      - 'aws-sdk'
+      - 'aws-lambda'
+      - '@types/aws-lambda'
+
 provider:
   name: aws
   runtime: nodejs20.x
   region: ap-south-1
   environment:
     DYNAMODB_TABLE: EventPlansTable
-    COGNITO_USER_POOL_ID: ${self:custom.cognitoUserPoolId}
   iam:
     role:
       statements:
@@ -25,89 +44,79 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/EventPlansTable
-        - Effect: Allow
-          Action:
-            - cognito-idp:AdminCreateUser
-            - cognito-idp:AdminDeleteUser
-            - cognito-idp:AdminUpdateUserAttributes
-            - cognito-idp:AdminInitiateAuth
-          Resource: arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognitoUserPoolId}
+            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/UserTable
 
+layers:
+  dependencies:
+    path: layer
+    name: ${self:service}-dependencies
+    description: Common dependencies for all functions
+    compatibleRuntimes:
+      - nodejs20.x
+    package:
+      patterns:
+        - '!node_modules/.prisma/**'
+        - '!node_modules/@types/**'
+        - 'node_modules/**'
+
+package:
+  individually: true
+  patterns:
+    - '!node_modules/**'
+    - '!src/**/*.ts'
+    - '!test/**'
+    - '!.git/**'
+    - '!.vscode/**'
+    - '!*.json'
+    - 'dist/handlers/*.js'  
+  
 resources:
   Resources:
-    # Event Plans Table
     EventPlansTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: EventPlansTable
         AttributeDefinitions:
           - AttributeName: id
-            AttributeType: S # `id` is the primary key and is a string
+            AttributeType: S
         KeySchema:
           - AttributeName: id
             KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
 
-    # Users Table
     UserTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: UserTable
         AttributeDefinitions:
           - AttributeName: userId
-            AttributeType: S # `userId` is the primary key and is a string
+            AttributeType: S
           - AttributeName: email
-            AttributeType: S # Secondary Index for lookup by email
+            AttributeType: S
         KeySchema:
           - AttributeName: userId
-            KeyType: HASH # Primary key for direct access
+            KeyType: HASH
         GlobalSecondaryIndexes:
           - IndexName: EmailIndex
             KeySchema:
               - AttributeName: email
                 KeyType: HASH
             Projection:
-              ProjectionType: ALL # Include all attributes in the index
-        BillingMode: PAY_PER_REQUEST # Auto scales based on demand
-
-    CognitoUserPool:
-      Type: AWS::Cognito::UserPool
-      Properties:
-        UserPoolName: EventPlanUserPool
-        AutoVerifiedAttributes:
-          - email
-        Policies:
-          PasswordPolicy:
-            MinimumLength: 8
-            RequireUppercase: true
-            RequireNumbers: true
-            RequireSymbols: false
-
-    CognitoUserPoolClient:
-      Type: AWS::Cognito::UserPoolClient
-      Properties:
-        ClientName: EventPlanUserPoolClient
-        UserPoolId:
-          Ref: CognitoUserPool
-        ExplicitAuthFlows:
-          - ADMIN_NO_SRP_AUTH
-        GenerateSecret: false
-
-custom:
-  cognitoUserPoolId:
-    Ref: CognitoUserPool
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
 
 functions:
   addEventPlan:
-    handler: src/handlers/addEvents.createEventHandler
+    handler: dist/handlers/createEvents.createEventHandler
     events:
       - httpApi:
           path: /addEvent
           method: POST
-    environment:
-      COGNITO_USER_POOL_ID: ${self:custom.cognitoUserPoolId}
-  
+    layers: 
+      - {Ref: DependenciesLambdaLayer}
+
   getEventPlans:
-    handler: src/handlers/getEvents.getEventsHandler
+    handler: dist/handlers/getEvents.getEventsHandler
     events:
       - httpApi:
           path: /getEvent
@@ -117,29 +126,34 @@ functions:
               querystrings:
                 limit: false
                 lastkey: false
+    layers: 
+      - {Ref: DependenciesLambdaLayer}
 
   updateEventPlans:
-    handler: src/handlers/updateEvent.updateEventHandler
+    handler: dist/handlers/updateEvent.updateEventHandler
     events:
       - httpApi:
           path: /updateEvent
           method: PUT
+    layers: 
+      - {Ref: DependenciesLambdaLayer}
 
   deleteEventPlan:
-    handler: src/handlers/deleteEvent.deleteEventHandler
+    handler: dist/handlers/deleteEvent.deleteEventHandler
     events:
-      - http:
-          path: eventplan/{id}
+      - httpApi:
+          path: /eventplan/{id}
           method: DELETE
+    layers: 
+      - {Ref: DependenciesLambdaLayer}
 
   createUser:
-    handler: src/handlers/createUser.createUserHandler
+    handler: dist/handlers/createUser.createUserHandler
     events:
       - httpApi:
           path: /createUser
           method: POST
     environment:
-      COGNITO_USER_POOL_ID: ${self:custom.cognitoUserPoolId}
-plugins:
-  - serverless-plugin-typescript # Compile TS code
-  - serverless-offline           # Run offline for local testing
+      USERS_DYNAMODB_TABLE: UserTable
+    layers: 
+      - {Ref: DependenciesLambdaLayer}
