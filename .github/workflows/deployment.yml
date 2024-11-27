@@ -3,9 +3,9 @@ name: Deploy to AWS
 on:
   push:
     branches:
-      - develop  # deploys to dev
-      - staging  # deploys to stage
-      - main     # deploys to prod
+      - develop  # deploy to dev
+      - staging  # deploy to stage
+      - main     # deploy to prod
 
 jobs:
   deploy:
@@ -42,7 +42,17 @@ jobs:
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set default.region ap-south-1
 
-      # Step 6: Navigate to `planiteasy` directory and deploy
+      # Step 6: Authenticate with Serverless Framework
+      - name: Serverless Framework Sign-In
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+        run: |
+          serverless config credentials --provider aws \
+                                        --key $AWS_ACCESS_KEY_ID \
+                                        --secret $AWS_SECRET_ACCESS_KEY
+          serverless login --token $SERVERLESS_ACCESS_KEY
+
+      # Step 7: Navigate to `planiteasy` directory and deploy
       - name: Deploy to AWS
         run: |
           cd planiteasy
