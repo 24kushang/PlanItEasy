@@ -1,8 +1,5 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: planiteasy
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: planiteasy
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: plan-it-easy
 
 custom:
@@ -24,7 +21,7 @@ custom:
       - 'aws-sdk'
       - 'aws-lambda'
       - '@types/aws-lambda'
-  stage: ${opt:stage, 'dev'}
+  stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
   tableName: 
     dev: EventPlansTable-dev
     stage: EventPlansTable-stage
@@ -39,8 +36,8 @@ provider:
   runtime: nodejs20.x
   region: ap-south-1
   environment:
-    STAGE: ${self:custom.stage}
-    DYNAMODB_TABLE: ${self:custom.tableName.${self:custom.stage}}
+    STAGE: ${self:custom.stage}  # Use the stage defined above
+    DYNAMODB_TABLE: ${self:custom.tableName.${self:custom.stage}, EventsTable}  # Resolves based on the stage
   iam:
     role:
       statements:
@@ -79,7 +76,6 @@ package:
     - '!.vscode/**'
     - '!*.json'
     - 'dist/handlers/*.js'  
-  
 resources:
   Resources:
     EventPlansTable:
@@ -164,6 +160,6 @@ functions:
           path: /createUser
           method: POST
     environment:
-      USERS_DYNAMODB_TABLE: ${self:custom.userTableName.${self:custom.stage}}
+      USERS_DYNAMODB_TABLE: ${self:custom.userTableName.${self:custom.stage}}  # Resolve dynamically
     layers: 
       - {Ref: DependenciesLambdaLayer}
