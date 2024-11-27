@@ -9,7 +9,7 @@
     "@types/node": "^22.9.1",
     "serverless-webpack": "^5.15.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.2"
   },
   "name": "planiteasy",
   "version": "1.0.0",

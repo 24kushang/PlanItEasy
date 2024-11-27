@@ -2,6 +2,9 @@
 rm -rf dist
 rm -rf layer
 
+# installing typescript
+npm install typescript
+
 # Create layer directory
 mkdir -p layer
 cd layer
