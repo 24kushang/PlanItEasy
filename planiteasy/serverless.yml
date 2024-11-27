@@ -37,7 +37,7 @@ provider:
   region: ap-south-1
   environment:
     STAGE: ${self:custom.stage}  # Use the stage defined above
-    DYNAMODB_TABLE: ${self:custom.tableName.${self:custom.stage}, EventsTable}  # Resolves based on the stage
+    DYNAMODB_TABLE: ${self:custom.tableName.${self:custom.stage}, 'EventsTable'}  # Resolves based on the stage
   iam:
     role:
       statements:
