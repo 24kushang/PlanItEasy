@@ -6,8 +6,6 @@ custom:
   esbuild:
     minify: true
     sourcemap: false
-    exclude: 
-      - aws-sdk
     target: 'node20'
     platform: 'node'
     bundle: true           # Enable proper bundling
@@ -16,19 +14,14 @@ custom:
     packagePath: 'package.json'
     enableDynamicImport: true
     nativeZip: true
-    # This is important - tells esbuild to exclude these from function bundles
-    external:
-      - 'aws-sdk'
-      - 'aws-lambda'
-      - '@types/aws-lambda'
   stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
   tableName: 
     develop: EventPlansTable-dev
-    stage: EventPlansTable-stage
+    staging: EventPlansTable-stage
     prod: EventPlansTable-prod
   userTableName:
     develop: UserTable-dev
-    stage: UserTable-stage
+    staging: UserTable-stage
     prod: UserTable-prod
 
 provider:
@@ -63,19 +56,13 @@ layers:
     package:
       patterns:
         - '!node_modules/.prisma/**'
-        - '!node_modules/@types/**'
-        - 'node_modules/**'
 
 package:
   individually: true
   patterns:
     - '!node_modules/**'
     - '!src/**/*.ts'
-    - '!test/**'
     - '!.git/**'
-    - '!.vscode/**'
-    - '!*.json'
-    - 'dist/handlers/*.js'  
 resources:
   Resources:
     EventPlansTable:
@@ -127,11 +114,6 @@ functions:
       - httpApi:
           path: /getEvent
           method: GET
-          request:
-            parameters:
-              querystrings:
-                limit: false
-                lastkey: false
     layers: 
       - {Ref: DependenciesLambdaLayer}
 
