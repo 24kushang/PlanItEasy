@@ -9,11 +9,17 @@ custom:
     target: 'node20'
     platform: 'node'
     bundle: true           # Enable proper bundling
+    exclude: 
+      - aws-sdk
     packager: 'npm'
     outputFileExtension: '.js'
     packagePath: 'package.json'
     enableDynamicImport: true
     nativeZip: true
+    external:
+      - 'aws-sdk'
+      - 'aws-lambda'
+      - '@types/aws-lambda'
   stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
   tableName: 
     develop: EventPlansTable-develop
@@ -56,12 +62,18 @@ layers:
     package:
       patterns:
         - '!node_modules/.prisma/**'
-
+        - '!node_modules/@types/**'
+        - 'node_modules/**'
 package:
   individually: true
   patterns:
+    - '!node_modules/**'
     - '!src/**/*.ts'
     - '!.git/**'
+    - '!test/**'
+    - '!.vscode/**'
+    - '!*.json'
+    - 'dist/handlers/*.js'  
 resources:
   Resources:
     EventPlansTable:
