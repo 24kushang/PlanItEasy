@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc --watch --listEmittedFiles",
     "start": "serverless offline --verbose",
-    "deploy": "./build.sh"
+    "package": "./build.sh"
   },
   "keywords": [],
   "author": "",

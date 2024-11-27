@@ -13,4 +13,4 @@ cd ..
 tsc
 
 # Deploy
-serverless deploy
+# serverless deploy

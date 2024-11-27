@@ -24,13 +24,23 @@ custom:
       - 'aws-sdk'
       - 'aws-lambda'
       - '@types/aws-lambda'
+  stage: ${opt:stage, 'dev'}
+  tableName: 
+    dev: EventPlansTable-dev
+    stage: EventPlansTable-stage
+    prod: EventPlansTable-prod
+  userTableName:
+    dev: UserTable-dev
+    stage: UserTable-stage
+    prod: UserTable-prod
 
 provider:
   name: aws
   runtime: nodejs20.x
   region: ap-south-1
   environment:
-    DYNAMODB_TABLE: EventPlansTable
+    STAGE: ${self:custom.stage}
+    DYNAMODB_TABLE: ${self:custom.tableName.${self:custom.stage}}
   iam:
     role:
       statements:
@@ -43,13 +53,13 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource:
-            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/EventPlansTable
-            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/UserTable
+            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/${self:custom.tableName.${self:custom.stage}}
+            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/${self:custom.userTableName.${self:custom.stage}}
 
 layers:
   dependencies:
     path: layer
-    name: ${self:service}-dependencies
+    name: ${self:service}-dependencies-${self:custom.stage}
     description: Common dependencies for all functions
     compatibleRuntimes:
       - nodejs20.x
@@ -75,7 +85,7 @@ resources:
     EventPlansTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: EventPlansTable
+        TableName: ${self:custom.tableName.${self:custom.stage}}
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -87,7 +97,7 @@ resources:
     UserTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: UserTable
+        TableName: ${self:custom.userTableName.${self:custom.stage}}
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
@@ -154,6 +164,6 @@ functions:
           path: /createUser
           method: POST
     environment:
-      USERS_DYNAMODB_TABLE: UserTable
+      USERS_DYNAMODB_TABLE: ${self:custom.userTableName.${self:custom.stage}}
     layers: 
       - {Ref: DependenciesLambdaLayer}
