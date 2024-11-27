@@ -16,11 +16,11 @@ custom:
     nativeZip: true
   stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
   tableName: 
-    develop: EventPlansTable-dev
+    develop: EventPlansTable-develop
     staging: EventPlansTable-stage
     prod: EventPlansTable-prod
   userTableName:
-    develop: UserTable-dev
+    develop: UserTable-develop
     staging: UserTable-stage
     prod: UserTable-prod
 
