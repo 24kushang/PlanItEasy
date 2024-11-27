@@ -29,10 +29,10 @@ jobs:
       
       - name: Deploy with Serverless Framework
         uses: serverless/github-action@v3
+        run: ls
         with:
           args: deploy
         env:
-          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           STAGE: ${{ github.ref == 'refs/heads/main' && 'prod' || github.ref == 'refs/heads/staging' && 'stage' || 'dev' }}
