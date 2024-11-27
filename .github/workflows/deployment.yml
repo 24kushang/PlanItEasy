@@ -25,7 +25,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm run package
+        run: cd planiteasy && npm run package
       
       - name: Deploy with Serverless Framework
         uses: serverless/github-action@v3
