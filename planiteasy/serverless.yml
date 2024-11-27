@@ -60,7 +60,6 @@ layers:
 package:
   individually: true
   patterns:
-    - '!node_modules/**'
     - '!src/**/*.ts'
     - '!.git/**'
 resources:
