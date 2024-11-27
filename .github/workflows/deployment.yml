@@ -45,12 +45,12 @@ jobs:
       # Step 6: Authenticate with Serverless Framework
       - name: Serverless Framework Sign-In
         env:
-          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
-        run: |
-          serverless config credentials --provider aws \
-                                        --key $AWS_ACCESS_KEY_ID \
-                                        --secret $AWS_SECRET_ACCESS_KEY
-          serverless login --token $SERVERLESS_ACCESS_KEY
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: 
+          export AWS_ACCESS_KEY_ID=${{ SERVERLESS_ACCESS_KEY }}
+          export AWS_SECRET_ACCESS_KEY=${{ AWS_SECRET_ACCESS_KEY }}
+          serverless login --token $AWS_ACCESS_KEY_ID
 
       # Step 7: Navigate to `planiteasy` directory and deploy
       - name: Deploy to AWS
