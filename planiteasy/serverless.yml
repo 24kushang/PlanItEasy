@@ -1,36 +1,42 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: planiteasy
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: planiteasy
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: plan-it-easy
 
 custom:
   esbuild:
     minify: true
     sourcemap: false
-    exclude: 
-      - aws-sdk
     target: 'node20'
     platform: 'node'
     bundle: true           # Enable proper bundling
+    exclude: 
+      - aws-sdk
     packager: 'npm'
     outputFileExtension: '.js'
     packagePath: 'package.json'
     enableDynamicImport: true
     nativeZip: true
-    # This is important - tells esbuild to exclude these from function bundles
     external:
       - 'aws-sdk'
       - 'aws-lambda'
       - '@types/aws-lambda'
+  stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
+  tableName: 
+    develop: EventPlansTable-develop
+    staging: EventPlansTable-stage
+    main: EventPlansTable-prod
+  userTableName:
+    develop: UserTable-develop
+    staging: UserTable-stage
+    main: UserTable-prod
 
 provider:
   name: aws
   runtime: nodejs20.x
   region: ap-south-1
   environment:
-    DYNAMODB_TABLE: EventPlansTable
+    STAGE: ${self:custom.stage}  # Use the stage defined above
+    DYNAMODB_TABLE: ${self:custom.tableName.${self:custom.stage}, 'EventsTable'}  # Resolves based on the stage
   iam:
     role:
       statements:
@@ -43,13 +49,13 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource:
-            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/EventPlansTable
-            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/UserTable
+            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/${self:custom.tableName.${self:custom.stage}}
+            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/${self:custom.userTableName.${self:custom.stage}}
 
 layers:
   dependencies:
     path: layer
-    name: ${self:service}-dependencies
+    name: ${self:service}-dependencies-${self:custom.stage}
     description: Common dependencies for all functions
     compatibleRuntimes:
       - nodejs20.x
@@ -58,24 +64,22 @@ layers:
         - '!node_modules/.prisma/**'
         - '!node_modules/@types/**'
         - 'node_modules/**'
-
 package:
   individually: true
   patterns:
     - '!node_modules/**'
     - '!src/**/*.ts'
-    - '!test/**'
     - '!.git/**'
+    - '!test/**'
     - '!.vscode/**'
     - '!*.json'
     - 'dist/handlers/*.js'  
-  
 resources:
   Resources:
     EventPlansTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: EventPlansTable
+        TableName: ${self:custom.tableName.${self:custom.stage}}
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -87,7 +91,7 @@ resources:
     UserTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: UserTable
+        TableName: ${self:custom.userTableName.${self:custom.stage}}
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
@@ -121,11 +125,6 @@ functions:
       - httpApi:
           path: /getEvent
           method: GET
-          request:
-            parameters:
-              querystrings:
-                limit: false
-                lastkey: false
     layers: 
       - {Ref: DependenciesLambdaLayer}
 
@@ -154,6 +153,6 @@ functions:
           path: /createUser
           method: POST
     environment:
-      USERS_DYNAMODB_TABLE: UserTable
+      USERS_DYNAMODB_TABLE: ${self:custom.userTableName.${self:custom.stage}}  # Resolve dynamically
     layers: 
       - {Ref: DependenciesLambdaLayer}
