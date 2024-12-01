@@ -24,11 +24,11 @@ custom:
   tableName: 
     develop: EventPlansTable-develop
     staging: EventPlansTable-stage
-    prod: EventPlansTable-prod
+    main: EventPlansTable-prod
   userTableName:
     develop: UserTable-develop
     staging: UserTable-stage
-    prod: UserTable-prod
+    main: UserTable-prod
 
 provider:
   name: aws
