@@ -22,25 +22,18 @@ jobs:
         with:
           node-version: '20'
 
-      # Step 3: Install AWS CLI
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
-          aws --version
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
 
       # Step 4: Install Serverless CLI
       - name: Install Serverless CLI
         run: |
           npm install -g serverless
           serverless --version
-
-      # Step 5: Configure AWS Credentials
-      - name: Configure AWS credentials
-        run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set default.region ap-south-1
 
       # Step 6: Set Serverless Access Key
       - name: Deploy with Serverless

@@ -3,32 +3,23 @@ app: planiteasy
 service: plan-it-easy
 
 custom:
+  custom:
   esbuild:
+    bundle: true
     minify: true
     sourcemap: false
     target: 'node20'
     platform: 'node'
-    bundle: true           # Enable proper bundling
-    exclude: 
-      - aws-sdk
-    packager: 'npm'
-    outputFileExtension: '.js'
-    packagePath: 'package.json'
-    enableDynamicImport: true
-    nativeZip: true
     external:
       - 'aws-sdk'
       - 'aws-lambda'
       - '@types/aws-lambda'
-  stage: ${opt:stage, 'dev'}  # Default to 'dev' if no stage is passed
+    packager: npm
+  stage: ${opt:stage, 'develop'}  # Default to 'dev' if no stage is passed
   tableName: 
     develop: EventPlansTable-develop
     staging: EventPlansTable-stage
     main: EventPlansTable-prod
-  userTableName:
-    develop: UserTable-develop
-    staging: UserTable-stage
-    main: UserTable-prod
 
 provider:
   name: aws
@@ -50,20 +41,7 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/${self:custom.tableName.${self:custom.stage}}
-            - arn:aws:dynamodb:ap-south-1:${aws:accountId}:table/${self:custom.userTableName.${self:custom.stage}}
 
-layers:
-  dependencies:
-    path: layer
-    name: ${self:service}-dependencies-${self:custom.stage}
-    description: Common dependencies for all functions
-    compatibleRuntimes:
-      - nodejs20.x
-    package:
-      patterns:
-        - '!node_modules/.prisma/**'
-        - '!node_modules/@types/**'
-        - 'node_modules/**'
 package:
   individually: true
   patterns:
@@ -88,71 +66,31 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
-    UserTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.userTableName.${self:custom.stage}}
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: email
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-        GlobalSecondaryIndexes:
-          - IndexName: EmailIndex
-            KeySchema:
-              - AttributeName: email
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
-
 functions:
   addEventPlan:
-    handler: dist/handlers/createEvents.createEventHandler
+    handler: src/handlers/createEvents.createEventHandler
     events:
       - httpApi:
           path: /addEvent
           method: POST
-    layers: 
-      - {Ref: DependenciesLambdaLayer}
 
   getEventPlans:
-    handler: dist/handlers/getEvents.getEventsHandler
+    handler: src/handlers/getEvents.getEventsHandler
     events:
       - httpApi:
           path: /getEvent
           method: GET
-    layers: 
-      - {Ref: DependenciesLambdaLayer}
 
   updateEventPlans:
-    handler: dist/handlers/updateEvent.updateEventHandler
+    handler: src/handlers/updateEvent.updateEventHandler
     events:
       - httpApi:
           path: /updateEvent
           method: PUT
-    layers: 
-      - {Ref: DependenciesLambdaLayer}
 
   deleteEventPlan:
-    handler: dist/handlers/deleteEvent.deleteEventHandler
+    handler: src/handlers/deleteEvent.deleteEventHandler
     events:
       - httpApi:
           path: /eventplan/{id}
           method: DELETE
-    layers: 
-      - {Ref: DependenciesLambdaLayer}
-
-  createUser:
-    handler: dist/handlers/createUser.createUserHandler
-    events:
-      - httpApi:
-          path: /createUser
-          method: POST
-    environment:
-      USERS_DYNAMODB_TABLE: ${self:custom.userTableName.${self:custom.stage}}  # Resolve dynamically
-    layers: 
-      - {Ref: DependenciesLambdaLayer}

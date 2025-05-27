@@ -7,7 +7,9 @@ import { EventModel } from "../models/EventModel";
 const client = new DynamoDBClient({});
 const dynamoDB = DynamoDBDocumentClient.from(client);
 
-export const updateEventHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export const updateEventHandler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
   try {
     if (!event.body) {
       return {
@@ -17,12 +19,14 @@ export const updateEventHandler = async (event: APIGatewayProxyEvent): Promise<A
     }
 
     const requestBody: Partial<EventModel> = JSON.parse(event.body);
-    const { id } = event.pathParameters || {};
+    const { id } = requestBody || {};
 
     if (!id) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: "Missing required path parameter: id." }),
+        body: JSON.stringify({
+          message: "Missing id in body",
+        }),
       };
     }
 
@@ -33,46 +37,49 @@ export const updateEventHandler = async (event: APIGatewayProxyEvent): Promise<A
 
     // Handle optional fields
     if (requestBody.name !== undefined) {
-      updateFields.set('#name', ':name');
-      expressionAttributeNames['#name'] = 'name';
-      expressionAttributeValues[':name'] = requestBody.name;
+      updateFields.set("#name", ":name");
+      expressionAttributeNames["#name"] = "name";
+      expressionAttributeValues[":name"] = requestBody.name;
     }
     if (requestBody.date !== undefined) {
-      updateFields.set('#date', ':date');
-      expressionAttributeNames['#date'] = 'date';
-      expressionAttributeValues[':date'] = requestBody.date;
+      updateFields.set("#date", ":date");
+      expressionAttributeNames["#date"] = "date";
+      expressionAttributeValues[":date"] = requestBody.date;
     }
     if (requestBody.description !== undefined) {
-      updateFields.set('#description', ':description');
-      expressionAttributeNames['#description'] = 'description';
-      expressionAttributeValues[':description'] = requestBody.description;
+      updateFields.set("#description", ":description");
+      expressionAttributeNames["#description"] = "description";
+      expressionAttributeValues[":description"] = requestBody.description;
     }
     if (requestBody.location !== undefined) {
-      updateFields.set('#location', ':location');
-      expressionAttributeNames['#location'] = 'location';
-      expressionAttributeValues[':location'] = requestBody.location;
+      updateFields.set("#location", ":location");
+      expressionAttributeNames["#location"] = "location";
+      expressionAttributeValues[":location"] = requestBody.location;
     }
     if (requestBody.participants !== undefined) {
-      updateFields.set('#participants', ':participants');
-      expressionAttributeNames['#participants'] = 'participants';
-      expressionAttributeValues[':participants'] = requestBody.participants;
+      updateFields.set("#participants", ":participants");
+      expressionAttributeNames["#participants"] = "participants";
+      expressionAttributeValues[":participants"] = requestBody.participants;
     }
 
     // Always update the updatedAt timestamp
-    updateFields.set('#updatedAt', ':updatedAt');
-    expressionAttributeNames['#updatedAt'] = 'updatedAt';
-    expressionAttributeValues[':updatedAt'] = new Date().toISOString();
+    updateFields.set("#updatedAt", ":updatedAt");
+    expressionAttributeNames["#updatedAt"] = "updatedAt";
+    expressionAttributeValues[":updatedAt"] = new Date().toISOString();
 
-    if (updateFields.size === 1) { // Only updatedAt was set
+    if (updateFields.size === 1) {
+      // Only updatedAt was set
       return {
         statusCode: 400,
         body: JSON.stringify({ message: "No fields to update were provided." }),
       };
     }
 
-    const updateExpression = 'set ' + Array.from(updateFields.entries())
-      .map(([key, value]) => `${key} = ${value}`)
-      .join(', ');
+    const updateExpression =
+      "set " +
+      Array.from(updateFields.entries())
+        .map(([key, value]) => `${key} = ${value}`)
+        .join(", ");
 
     const command = new UpdateCommand({
       TableName: process.env.DYNAMODB_TABLE || "",
@@ -97,7 +104,7 @@ export const updateEventHandler = async (event: APIGatewayProxyEvent): Promise<A
   } catch (error: any) {
     console.error("Error updating event:", error);
 
-    if (error.name === 'ConditionalCheckFailedException') {
+    if (error.name === "ConditionalCheckFailedException") {
       return {
         statusCode: 404,
         body: JSON.stringify({ message: "Event not found." }),

@@ -1,19 +1,11 @@
 # Clear old builds
-rm -rf dist
-rm -rf layer
+rm -rf .esbuild .serverless dist
 
-# installing typescript
-npm install typescript
+# Install dependencies
+npm install
 
-# Create layer directory
-mkdir -p layer
-cd layer
-cp ../package.json .
-npm install --production
-cd ..
+# Build with esbuild via Serverless
+serverless package
 
-# Build TypeScript
-tsc
-
-# Deploy
+# Deploy 
 # serverless deploy --stage ${{ github.ref_name }}
